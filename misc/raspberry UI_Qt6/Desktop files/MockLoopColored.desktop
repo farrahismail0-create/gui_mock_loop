@@ -1,0 +1,11 @@
+
+
+
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name= GUI Colored
+Exec=python3 /home/pi/Project/UI/MockLoopColored.py
+Icon=utilities-terminal
+Terminal=false
+Categories=Application;

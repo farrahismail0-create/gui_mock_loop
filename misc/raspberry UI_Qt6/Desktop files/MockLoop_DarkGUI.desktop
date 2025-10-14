@@ -1,0 +1,11 @@
+
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=MCL GUI Dark
+Exec=python3 /home/pi/Project/UI/MockLoopGUI-DarkMode.py
+Icon=utilities-terminal
+Terminal=false
+Categories=Application;
+
+

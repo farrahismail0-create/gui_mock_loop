@@ -1,0 +1,58 @@
+/* USE THIS IN GUI.py
+with open("dark_digital_style.qss", "r") as f:
+    app.setStyleSheet(f.read())
+*/
+QMainWindow {
+    background-color: #000000;
+}
+
+/* Parameter Labels: HR, SV, R */
+QPushButton#pushButton, QPushButton#pushButton_2, QPushButton#btnResistance {
+    color: #00FFCC;
+    font-size: 22px;
+    font-family: "Consolas", "Courier New", monospace;
+    font-weight: bold;
+    background-color: transparent;
+    border: none;
+}
+
+/* Pressure Labels: LVP, AOP, LAP, FLOW */
+QLabel#lvpLabel, QLabel#aopLabel, QLabel#lapLabel, QLabel#flowLabel {
+    color: #00FF00;
+    font-size: 20px;
+    font-family: "Consolas", "Courier New", monospace;
+    font-weight: bold;
+}
+
+/* Control Buttons: START, STOP, RECORD, etc. */
+QPushButton {
+    font-size: 18px;
+    font-weight: bold;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+QPushButton#resetButton {
+    background-color: green;
+    color: white;
+}
+
+QPushButton#stopButton {
+    background-color: red;
+    color: black;
+}
+
+QPushButton#recordButton {
+    background-color: gray;
+    color: white;
+}
+
+/* State Indicator */
+QTextEdit#stateIndicator {
+    background-color: black;
+    color: white;
+    font-size: 14px;
+    font-family: "Consolas", "Courier New", monospace;
+    border: 2px solid white;
+    border-radius: 10px;
+}
