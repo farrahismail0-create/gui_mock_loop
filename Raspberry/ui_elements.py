@@ -66,8 +66,9 @@ class Ui_MainWindow(object):
         self.recordButton.setObjectName("recordButton")
         self.horizontalLayout_2.addWidget(self.recordButton)
 
-        self.settingsButton = QtWidgets.QPushButton(self.bottomButtonsWidget)
+        self.settingsButton = QtWidgets.QToolButton(self.bottomButtonsWidget)
         self.settingsButton.setObjectName("settingsButton")
+        self.settingsButton.setPopupMode(QtWidgets.QToolButton.InstantPopup)
         self.horizontalLayout_2.addWidget(self.settingsButton)
         self.layoutWidget = QtWidgets.QWidget(self.centralwidget)
         #self.layoutWidget.setGeometry(QtCore.QRect(760, 80, 122, 481))

@@ -1,22 +1,23 @@
-
 # GUI_3.0.py – Final integrated GUI with live plotting, motor control, and UI
 
 import sys
 from PyQt5 import QtWidgets, QtCore
-#from PyQt5 import QtGui
-#import pyqtgraph as pg
-#import random
-#import math
-#import numpy as np
+# from PyQt5 import QtGui
+# import pyqtgraph as pg
+# import random
+# import math
+# import numpy as np
 from ui_elements import Ui_MainWindow
 from modbus_controller import ModbusController
 from live_plotter import LivePlotter
-#from live_plotter_calibration_test import LivePlotter
+# from live_plotter_calibration_test import LivePlotter
 from sensor_reader_thread import SensorReaderThread
+
 
 # Reuse ModbusThread from previous design
 class ModbusThread(QtCore.QThread):
     """Thread to update motor parameters without freezing the GUI."""
+
     def __init__(self, modbus, frequency, stroke_volume):
         super().__init__()
         self.modbus = modbus
@@ -26,9 +27,9 @@ class ModbusThread(QtCore.QThread):
     def run(self):
         """Send updated motor values to Modbus."""
         try:
-            #print(f"TESTING: ModbusThread started with Frequency={self.frequency}, Stroke={self.stroke_volume}")  # Debug message
-            #set_motor_speed(self.frequency, self.stroke_volume)  # OLD
-            #set_motor_target_position(self.frequency, self.stroke_volume)  # OLD
+            # print(f"TESTING: ModbusThread started with Frequency={self.frequency}, Stroke={self.stroke_volume}")  # Debug message
+            # set_motor_speed(self.frequency, self.stroke_volume)  # OLD
+            # set_motor_target_position(self.frequency, self.stroke_volume)  # OLD
             self.modbus.set_motor_speed(self.frequency, self.stroke_volume)  # NEW from ModbusController CLASS
             self.modbus.set_motor_target_position(self.frequency, self.stroke_volume)  # NEW from ModbusController CLASS
         except Exception as e:
@@ -73,6 +74,17 @@ class MainWindow(QtWidgets.QMainWindow):
              QStackedWidget, QFrame {
                  background-color: #000000;
              }
+             QMenu {
+                 background-color: #3c3f41;
+                 color: white;
+                 border: 1px solid #5c5c5c;
+             }
+             QMenu::item {
+                 padding: 5px 20px 5px 20px;
+             }
+             QMenu::item:selected {
+                 background-color: #505357;
+             }
          """)
         # Set initial values  (should be read from Modbus on startup)
         # These value should be read from starting when first starting the GUI
@@ -89,10 +101,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.plotter.stats_updated.connect(self.update_pressure_labels)
         self.plotter.show()
 
-
         self.plotter.stats_updated.connect(self.update_pressure_labels)
 
-        self.ui.settingsButton.clicked.connect(self.enter_developer_mode)
+        # Create and setup settings menu
+        self.setup_settings_menu()
 
         # Sensor Reader Thread
         self.sensor_thread = SensorReaderThread(port="/dev/ttyUSB0")
@@ -102,7 +114,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # All UI initializations from GUI_2.0
         self.initialize_ui_logic()
-
 
     def initialize_ui_logic(self):
         self.hr_timer = QtCore.QTimer(singleShot=True)
@@ -122,21 +133,19 @@ class MainWindow(QtWidgets.QMainWindow):
         self.log_buffer = ""
         self._drag_pos = None
 
-#--------------------------- START/RESET Button ---------------------------------------
         # Track current state of the RESET/START button
         self.ui.resetButton.setText("START\nMOTOR")
         self.is_start_mode = True
         self.ui.stopButton.setStyleSheet("background-color: red; color: black; font-size: 20px;")
         self.ui.resetButton.setStyleSheet("background-color: green; color: white; font-size: 20px;")
 
-        #STOP and RESET/START BUTTONs
+        # STOP and RESET/START BUTTONs
         self.ui.stopButton.clicked.connect(self.stop_motor_function)
         self.ui.resetButton.clicked.connect(self.toggle_start_reset)
-        #self.ui.resetButton.clicked.connect(self.reset_motor_function)
 
         # Connect value display buttons to switch to adjustment mode
-        self.ui.pushButton.clicked.connect(lambda: self.show_adjustment(self.ui.hrStackedWidget, self.hr_timer, 0))  # Push Button = HR Button
-        self.ui.pushButton_2.clicked.connect(lambda: self.show_adjustment(self.ui.svStackedWidget, self.sv_timer, 0)) # Push Button 2 = SV Button
+        self.ui.pushButton.clicked.connect(lambda: self.show_adjustment(self.ui.hrStackedWidget, self.hr_timer, 0))
+        self.ui.pushButton_2.clicked.connect(lambda: self.show_adjustment(self.ui.svStackedWidget, self.sv_timer, 0))
         self.ui.btnResistance.clicked.connect(lambda: self.show_adjustment(self.ui.resStackedWidget, self.res_timer, 1))
 
         # Connect + and - buttons to adjust values (long press)
@@ -159,7 +168,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.lvpLabel.clicked.connect(lambda: self.plotter.toggle_channel("LVP"))
         self.ui.aopLabel.clicked.connect(lambda: self.plotter.toggle_channel("AOP"))
         self.ui.lapLabel.clicked.connect(lambda: self.plotter.toggle_channel("LAP"))
-        self.ui.flowLabel.clicked.connect(lambda: self.plotter.toggle_channel("FLOW"))          
+        self.ui.flowLabel.clicked.connect(lambda: self.plotter.toggle_channel("FLOW"))
 
         # Button styling map
         button_styles = {
@@ -178,17 +187,95 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.stateIndicator.mousePressEvent = self.toggle_log_dialog
         self.setup_log_dialog()
 
-        #self.log_message("System initialized", "info")      # EXAMPLE log messages
-        #self.update_state_indicator("running")             # EXAMPLE indicator use
         self.update_labels()
 
-    def enter_developer_mode(self):
-        text, ok = QtWidgets.QInputDialog.getText(self, "Developer Mode", "Enter passcode:", QtWidgets.QLineEdit.Password)
-        if ok and text == "raspberry":
-            self.close()  # Exit GUI to enter OS
-        #either this or just:
-        #QtCore.QCoreApplication.quit()
+    def setup_settings_menu(self):
+        """Create the drop-down menu for settings button"""
+        self.settings_menu = QtWidgets.QMenu(self)
 
+        # Add menu actions
+        self.developer_mode_action = QtWidgets.QAction("Developer Mode", self)
+        self.appearance_action = QtWidgets.QAction("Appearance Settings", self)
+        self.data_management_action = QtWidgets.QAction("Data Management", self)
+        self.system_info_action = QtWidgets.QAction("System Information", self)
+        self.about_action = QtWidgets.QAction("About", self)
+        self.exit_action = QtWidgets.QAction("Exit to OS", self)
+
+        # Connect actions to functions
+        self.developer_mode_action.triggered.connect(self.enter_developer_mode)
+        self.appearance_action.triggered.connect(self.show_appearance_settings)
+        self.data_management_action.triggered.connect(self.show_data_management)
+        self.system_info_action.triggered.connect(self.show_system_info)
+        self.about_action.triggered.connect(self.show_about)
+        self.exit_action.triggered.connect(self.exit_to_os)
+
+        # Add actions to menu
+        self.settings_menu.addAction(self.developer_mode_action)
+        self.settings_menu.addSeparator()
+        self.settings_menu.addAction(self.appearance_action)
+        self.settings_menu.addAction(self.data_management_action)
+        self.settings_menu.addAction(self.system_info_action)
+        self.settings_menu.addSeparator()
+        self.settings_menu.addAction(self.about_action)
+        self.settings_menu.addAction(self.exit_action)
+
+        # Set the menu to the settings button
+        self.ui.settingsButton.setMenu(self.settings_menu)
+
+    def enter_developer_mode(self):
+        """Developer mode with password protection"""
+        text, ok = QtWidgets.QInputDialog.getText(self, "Developer Mode", "Enter passcode:",
+                                                  QtWidgets.QLineEdit.Password)
+        if ok and text == "raspberry":
+            QtWidgets.QMessageBox.information(self, "Developer Mode", "Developer mode activated!")
+            # Add developer mode functionality here
+        elif ok:
+            QtWidgets.QMessageBox.warning(self, "Access Denied", "Incorrect passcode!")
+
+    def show_appearance_settings(self):
+        """Show appearance settings dialog"""
+        QtWidgets.QMessageBox.information(self, "Appearance Settings", "Appearance settings dialog would open here.")
+
+    def show_data_management(self):
+        """Show data management dialog"""
+        QtWidgets.QMessageBox.information(self, "Data Management", "Data management dialog would open here.")
+
+    def show_system_info(self):
+        """Show system information"""
+        info = """
+        System Information:
+
+        - Heart Rate: {} BPM
+        - Stroke Volume: {} cm
+        - Resistance: {}%
+        - Motor Status: {}
+
+        Software Version: 3.0
+        """.format(self.heart_rate, self.stroke_volume, self.resistance,
+                   "Running" if not self.is_start_mode else "Stopped")
+
+        QtWidgets.QMessageBox.information(self, "System Information", info)
+
+    def show_about(self):
+        """Show about dialog"""
+        about_text = """
+        Cardiac Simulator GUI v3.0
+
+        Advanced cardiac simulation interface
+        with real-time plotting and motor control.
+
+        Developed for medical training and research.
+        """
+        QtWidgets.QMessageBox.about(self, "About", about_text)
+
+    def exit_to_os(self):
+        """Exit the application and return to OS"""
+        reply = QtWidgets.QMessageBox.question(self, "Exit Confirmation",
+                                               "Are you sure you want to exit to OS?",
+                                               QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+                                               QtWidgets.QMessageBox.No)
+        if reply == QtWidgets.QMessageBox.Yes:
+            self.close()
 
     def handle_sensor_data(self, sensor_id, value):
         if sensor_id == 0:
@@ -197,37 +284,36 @@ class MainWindow(QtWidgets.QMainWindow):
             self.plotter.receive_data("AOP", value)
         elif sensor_id == 2:
             self.plotter.receive_data("LAP", value)
-    
+
     def calibrate_sensors(self):
         if self.is_start_mode:  # Motor is not running
             self.sensor_thread.request_calibration.emit()
-            #self.log_message("Sensor zeroing started...", "info")
+            # self.log_message("Sensor zeroing started...", "info")
             print("Sensor zeroing started...")
         else:
-            #self.log_message("Cannot calibrate while motor is running.", "warning")
+            # self.log_message("Cannot calibrate while motor is running.", "warning")
             print("Cannot calibrate while motor is running.")
 
     def on_calibration_finished(self, offsets):
-        #print(f"Sensor calibration complete. New zero offsets: {offsets}")
-        pass # Do nothing for now
-        
+        # print(f"Sensor calibration complete. New zero offsets: {offsets}")
+        pass  # Do nothing for now
 
     def toggle_start_reset(self):
         """Toggle between starting and resetting the motor."""
         if self.is_start_mode:
-            #print("TESTING: Start button pressed!")  # Debug
-            #start_motor()  # OLD
+            # print("TESTING: Start button pressed!")  # Debug
+            # start_motor()  # OLD
             self.modbus.start_motor()  # NEW from ModbusController CLASS
             self.ui.resetButton.setText("RESET\nMOTOR")
 
             self.ui.stopButton.setEnabled(True)
-            #self.ui.stopButton.setStyleSheet("background-color: red; color: black; font-size: 20px;")
-            
+            # self.ui.stopButton.setStyleSheet("background-color: red; color: black; font-size: 20px;")
+
             self.ui.resetButton.setEnabled(False)
-            #self.ui.resetButton.setStyleSheet("background-color: lightgray; color: gray; font-size: 20px;")
-        
+            # self.ui.resetButton.setStyleSheet("background-color: lightgray; color: gray; font-size: 20px;")
+
         else:
-            #print("TESTING: Reset button pressed!")  # Debug
+            # print("TESTING: Reset button pressed!")  # Debug
             self.reset_motor_function()
             self.ui.resetButton.setText("START\nMOTOR")
             self.ui.resetButton.setStyleSheet("background-color: green; color: white; font-size: 20px;")
@@ -239,21 +325,21 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def stop_motor_function(self):
         """Stops the motor when the stop button is pressed."""
-        #print("TESTING: Stop button pressed!")  # Debug message
+        # print("TESTING: Stop button pressed!")  # Debug message
         self.disable_controls()
-        #stop_motor()  # OLD
+        # stop_motor()  # OLD
         self.modbus.stop_motor()  # NEW from ModbusController CLASS
         self.ui.resetButton.setEnabled(True)
         self.ui.resetButton.setStyleSheet("background-color: yellow; color: black; font-size: 20px;")
 
     def reset_motor_function(self):
         """Resets the motor when the reset button is pressed."""
-        #print("TESTING: Reset button pressed!")  # Debug message
+        # print("TESTING: Reset button pressed!")  # Debug message
         self.enable_controls()
-        #reset_motor_position()  # OLD
+        # reset_motor_position()  # OLD
         self.modbus.reset_motor_position()  # NEW from ModbusController CLASS
 
-    def disable_controls(self):                                                     # STILL NOT PROBERLY WORKING
+    def disable_controls(self):  # STILL NOT PROBERLY WORKING
         for widget in [
             self.ui.pushButton, self.ui.pushButton_2, self.ui.btnResistance,
             self.ui.btnHRincrease, self.ui.btnHRdecrease,
@@ -263,7 +349,7 @@ class MainWindow(QtWidgets.QMainWindow):
         ]:
             widget.setEnabled(False)
 
-    def enable_controls(self):                                                      # STILL NOT PROBERLY WORKING
+    def enable_controls(self):  # STILL NOT PROBERLY WORKING
         for widget in [
             self.ui.pushButton, self.ui.pushButton_2, self.ui.btnResistance,
             self.ui.btnHRincrease, self.ui.btnHRdecrease,
@@ -273,7 +359,7 @@ class MainWindow(QtWidgets.QMainWindow):
         ]:
             widget.setEnabled(True)
 
-#------------------------------------- Labels --------------------------------
+    # ------------------------------------- Labels --------------------------------
     def show_adjustment(self, stacked_widget, timer, page_index):
         """Switches to adjustment mode and starts a separate timer for each widget."""
         stacked_widget.setCurrentIndex(page_index)
@@ -326,7 +412,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.update_motor_parameters()  # Send data to Modbus
 
     def update_motor_parameters(self):
-        #print(f"TESTING: Starting ModbusThread with HR={self.heart_rate}, SV={self.stroke_volume}")  # Debug Message
+        # print(f"TESTING: Starting ModbusThread with HR={self.heart_rate}, SV={self.stroke_volume}")  # Debug Message
         self.modbus_thread = ModbusThread(self.modbus, self.heart_rate, self.stroke_volume)
         self.modbus_thread.start()
 
@@ -351,9 +437,9 @@ class MainWindow(QtWidgets.QMainWindow):
         elif name == "FLOW":
             self.ui.flowLabel.setText(f"FLOW\n{stats['mean']:.1f}")
 
-#---------------------------------------- Log Window ---------------------------------
+    # ---------------------------------------- Log Window ---------------------------------
 
-    def update_state_indicator(self, state):                                            # NOT USED
+    def update_state_indicator(self, state):  # NOT USED
         color_map = {
             "idle": "gray",
             "running": "green",
@@ -407,7 +493,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.log_buffer += formatted
         self.log_text.setHtml(self.log_buffer)
 
-
     def dialog_mouse_press(self, event):
         if event.button() == QtCore.Qt.LeftButton:
             self._drag_pos = event.globalPos() - self.log_dialog.frameGeometry().topLeft()
@@ -423,8 +508,7 @@ class MainWindow(QtWidgets.QMainWindow):
         event.accept()
 
 
-
- #--------------------------------- MAIN ---------------------------------------       
+# --------------------------------- MAIN ---------------------------------------
 
 
 if __name__ == "__main__":
