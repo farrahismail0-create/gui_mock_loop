@@ -1,5 +1,4 @@
 # GUI_3.0.py – Final integrated GUI with live plotting, motor control, and UI
-
 import sys
 from PyQt5 import QtWidgets, QtCore
 # from PyQt5 import QtGui

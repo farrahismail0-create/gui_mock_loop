@@ -8,7 +8,7 @@
 # run the following command to convert the .ui file to .py file
 #  python -m PyQt6.uic.pyuic -x file_name.ui -o file_name.py  
 
-from PyQt5 import QtCore, QtGui, QtWidgets  # <-- switched to PyQt5!
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
