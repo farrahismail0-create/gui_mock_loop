@@ -13,7 +13,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets  # <-- switched to PyQt5!
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1024, 700)
+        MainWindow.resize(1120, 700)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
 
@@ -23,23 +23,41 @@ class Ui_MainWindow(object):
         self.stateIndcator.setText("")
         self.stateIndcator.setObjectName("stateIndcator")"""
         self.stateIndicator = QtWidgets.QTextEdit(self.centralwidget)
-        self.stateIndicator.setGeometry(QtCore.QRect(910, 20, 91, 41))
+        self.stateIndicator.setGeometry(QtCore.QRect(960, 20, 60, 41))
         self.stateIndicator.setReadOnly(True)
         self.stateIndicator.setStyleSheet("""
-            background-color: black;
+            background-color: #222; 
             color: white;
             border-radius: 20px;
-            border: 2px solid black;
+            border: 2px solid #888;
             font-size: 12px;
         """)
         self.stateIndicator.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.stateIndicator.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.stateIndicator.setText("")
+        self.stateIndicator.setText("Log")
         self.stateIndicator.setObjectName("stateIndicator")
+        self.stateIndicator.setAlignment(QtCore.Qt.AlignCenter)
+
+        # Top-right Developer Mode gear button (separate from bottom "Options")
+        self.devButton = QtWidgets.QToolButton(self.centralwidget)
+        self.devButton.setGeometry(QtCore.QRect(1030, 20, 41, 41))
+        self.devButton.setText("⚙")
+        self.devButton.setObjectName("devButton")
+        self.devButton.setStyleSheet("""
+            background-color: #3c3f41;
+            color: white;
+            border: 1px solid #5c5c5c;
+            border-radius: 20px;
+            font-size: 20px;
+            padding: 0px;
+        """)
+
+
+
 
         # Bottom Buttons Row
         self.bottomButtonsWidget = QtWidgets.QWidget(self.centralwidget)
-        self.bottomButtonsWidget.setGeometry(QtCore.QRect(0, 560, 1024, 80))
+        self.bottomButtonsWidget.setGeometry(QtCore.QRect(0, 560, 1120, 80))
         self.bottomButtonsWidget.setObjectName("bottomButtonsWidget")
 
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout(self.bottomButtonsWidget)
@@ -72,8 +90,15 @@ class Ui_MainWindow(object):
         self.horizontalLayout_2.addWidget(self.settingsButton)
         self.layoutWidget = QtWidgets.QWidget(self.centralwidget)
         #self.layoutWidget.setGeometry(QtCore.QRect(760, 80, 122, 481))
-        self.layoutWidget.setGeometry(QtCore.QRect(760, 140, 122, 421))
+        self.layoutWidget.setGeometry(QtCore.QRect(40, 140, 122, 421))
         self.layoutWidget.setObjectName("layoutWidget")
+
+        self.paramsPanel = QtWidgets.QWidget(self.centralwidget)
+        self.paramsPanel.setGeometry(QtCore.QRect(890, 140, 210, 421))
+        self.paramsPanel.setObjectName("paramsPanel")
+        self.paramsVLayout = QtWidgets.QVBoxLayout(self.paramsPanel)
+        self.paramsVLayout.setContentsMargins(0, 0, 0, 0)
+        self.paramsVLayout.setSpacing(10)
 
         self.verticalLayout = QtWidgets.QVBoxLayout(self.layoutWidget)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
@@ -158,7 +183,7 @@ class Ui_MainWindow(object):
         self.pushButton.setObjectName("pushButton")
         self.hrStackedWidget.addWidget(self.hrPage1_2)
 
-        self.horizontalLayout.addWidget(self.hrStackedWidget)
+        # self.horizontalLayout.addWidget(self.hrStackedWidget)
 
         self.svStackedWidget = QtWidgets.QStackedWidget(self.widget)
         self.svStackedWidget.setObjectName("svStackedWidget")
@@ -189,10 +214,26 @@ class Ui_MainWindow(object):
         self.pushButton_2.setObjectName("pushButton_2")
         self.svStackedWidget.addWidget(self.svPage2)
 
-        self.horizontalLayout.addWidget(self.svStackedWidget)
+        # self.horizontalLayout.addWidget(self.svStackedWidget)
 
         self.resStackedWidget = QtWidgets.QStackedWidget(self.widget)
         self.resStackedWidget.setObjectName("resStackedWidget")
+
+        # ---- NEW: move existing stacked widgets into params panel on the right ----
+        self.hrStackedWidget.setParent(self.paramsPanel)
+        self.svStackedWidget.setParent(self.paramsPanel)
+        self.resStackedWidget.setParent(self.paramsPanel)
+
+        self.paramsVLayout.addWidget(self.hrStackedWidget)
+        self.paramsVLayout.addWidget(self.svStackedWidget)
+        self.paramsVLayout.addWidget(self.resStackedWidget)
+
+        # Hide the old top header container so it doesn’t show the duplicated widgets
+        self.widget.hide()
+        for w in (self.hrStackedWidget, self.svStackedWidget, self.resStackedWidget):
+            w.setMinimumHeight(90)
+            w.setMaximumHeight(120)
+
 
         self.resPage1 = QtWidgets.QWidget()
         self.resPage1.setObjectName("resPage1")
@@ -219,7 +260,7 @@ class Ui_MainWindow(object):
         self.resLabel.setObjectName("resLabel")
         self.resStackedWidget.addWidget(self.resPage2)
 
-        self.horizontalLayout.addWidget(self.resStackedWidget)
+        # self.horizontalLayout.addWidget(self.resStackedWidget)
 
         MainWindow.setCentralWidget(self.centralwidget)
 
@@ -238,7 +279,7 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.recordButton.setText(_translate("MainWindow", "RECORD"))
         self.predefButton.setText(_translate("MainWindow", "Predefined\nScenarios"))
-        self.settingsButton.setText(_translate("MainWindow", "SETTINGS"))
+        self.settingsButton.setText(_translate("MainWindow", "Options"))
         self.calibrateButton.setText(_translate("MainWindow", "Zero\nPressures"))
         self.stopButton.setText(_translate("MainWindow", "STOP\nMOTOR"))
         self.resetButton.setText(_translate("MainWindow", "RESET"))
@@ -258,6 +299,7 @@ class Ui_MainWindow(object):
         self.btnResIncrease.setText(_translate("MainWindow", "+"))
         self.btnResDecrease.setText(_translate("MainWindow", "-"))
         self.resLabel.setText(_translate("MainWindow", "Resistance"))
+        self.devButton.setText(_translate("MainWindow", "⚙"))
 
 
 if __name__ == "__main__":

@@ -45,6 +45,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.showFullScreen()
 
         self.ui.setupUi(self)
+        self.ui.devButton.clicked.connect(self.enter_developer_mode)
 
         self.modbus = ModbusController()  # Instantiate the new ModbusController CLASS
 
@@ -92,12 +93,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.stroke_volume = 1.5
         self.resistance = 50
 
+        # Recording state variables
+        self.is_recording = False
+        self.record_start_time = None
+        self.record_elapsed_time = 0
+
         # Embed live plotter
         """self.plotter = LivePlotter(self)
         self.plotter.setGeometry(40, 130, 700, 430)
         self.plotter.setParent(self)"""
         self.plotter = LivePlotter(self.ui.centralwidget)
-        self.plotter.setGeometry(40, 130, 700, 430)
+        self.plotter.setGeometry(182, 130, 700, 430)
         self.plotter.stats_updated.connect(self.update_pressure_labels)
         self.plotter.show()
 
@@ -126,6 +132,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.hold_timer = QtCore.QTimer()
         self.hold_timer.timeout.connect(self.long_press_adjust)
 
+        # Recording timer
+        self.record_timer = QtCore.QTimer()
+        self.record_timer.timeout.connect(self.update_record_timer)
+
         self.hold_param = None
         self.hold_step = 0
         self.hold_speed = 400
@@ -142,6 +152,10 @@ class MainWindow(QtWidgets.QMainWindow):
         # STOP and RESET/START BUTTONs
         self.ui.stopButton.clicked.connect(self.stop_motor_function)
         self.ui.resetButton.clicked.connect(self.toggle_start_reset)
+
+        # Connect record button
+        self.ui.recordButton.clicked.connect(self.toggle_recording)
+
 
         # Connect value display buttons to switch to adjustment mode
         self.ui.pushButton.clicked.connect(lambda: self.show_adjustment(self.ui.hrStackedWidget, self.hr_timer, 0))
@@ -188,6 +202,89 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setup_log_dialog()
 
         self.update_labels()
+
+        self.update_record_button()
+
+    def toggle_recording(self):
+
+        """Toggle recording state and start/stop timer"""
+
+        if not self.is_recording:
+
+            # Start recording
+
+            self.is_recording = True
+
+            self.record_start_time = QtCore.QTime.currentTime()
+
+            self.record_elapsed_time = QtCore.QTime(0, 0, 0, 0)
+
+            self.record_timer.start(100)  # Update every 100ms for smooth display
+
+            self.log_message("Recording started", "info")
+
+        else:
+
+            # Stop recording
+
+            self.is_recording = False
+
+            self.record_timer.stop()
+
+            recording_duration = self.format_time_ms(self.record_elapsed_time)
+
+            self.log_message(f"Recording stopped. Duration: {recording_duration}", "done")
+
+            # Reset timer display on the button
+
+            self.ui.recordButton.setText("RECORD")
+
+        self.update_record_button()
+
+    def update_record_timer(self):
+
+        """Update the recording timer display"""
+
+        if self.is_recording and self.record_start_time:
+            current_time = QtCore.QTime.currentTime()
+            self.record_elapsed_time = self.record_start_time.msecsTo(current_time)
+            self.ui.recordButton.setText(f"REC\n{self.format_time_ms(self.record_elapsed_time)}")
+
+    def format_time_ms(self, ms: int) -> str:
+        minutes = (ms // 60000) % 60
+        seconds = (ms // 1000) % 60
+        centis = (ms % 1000) // 10  # two digits
+        return f"{minutes:02d}:{seconds:02d}.{centis:02d}"
+
+    def update_record_button(self):
+
+        """Update record button appearance based on recording state"""
+
+        if self.is_recording:
+
+            self.ui.recordButton.setStyleSheet("""
+
+                background-color: #ff4444; 
+
+                color: white; 
+
+                font-size: 16px;
+
+                font-weight: bold;
+
+            """)
+
+        else:
+
+            self.ui.recordButton.setStyleSheet("""
+
+                background-color: #3c3f41;
+
+                color: #ffffff;
+
+                font-size: 16px;
+
+            """)
 
     def setup_settings_menu(self):
         """Create the drop-down menu for settings button"""
@@ -249,10 +346,11 @@ class MainWindow(QtWidgets.QMainWindow):
         - Stroke Volume: {} cm
         - Resistance: {}%
         - Motor Status: {}
-
+        - Recording: {}
         Software Version: 3.0
         """.format(self.heart_rate, self.stroke_volume, self.resistance,
-                   "Running" if not self.is_start_mode else "Stopped")
+                   "Running" if not self.is_start_mode else "Stopped",
+                   "Active" if self.is_recording else "Inactive")
 
         QtWidgets.QMessageBox.information(self, "System Information", info)
 
@@ -270,6 +368,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def exit_to_os(self):
         """Exit the application and return to OS"""
+        # Stop recording if active
+        if self.is_recording:
+            self.toggle_recording()
+
         reply = QtWidgets.QMessageBox.question(self, "Exit Confirmation",
                                                "Are you sure you want to exit to OS?",
                                                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
@@ -461,7 +563,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         log_container = QtWidgets.QWidget(self.log_dialog)
         log_container.setGeometry(0, 0, 420, 320)
-        log_container.setStyleSheet("background-color: rgba(0, 0, 0, 230); border-radius: 10px;")
+        log_container.setStyleSheet("background-color: rgba(40, 40, 60, 230); border-radius: 10px;")
 
         self.log_close_btn = QtWidgets.QPushButton("X", log_container)
         self.log_close_btn.setGeometry(390, 5, 24, 24)
@@ -471,7 +573,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.log_text = QtWidgets.QTextEdit(log_container)
         self.log_text.setGeometry(10, 35, 400, 275)
         self.log_text.setReadOnly(True)
-        self.log_text.setStyleSheet("background-color: transparent; color: white; font-size: 14px; border: none;")
+        self.log_text.setStyleSheet("background-color: transparent; color: #00ffff; font-size: 14px; border: none;")
 
     def toggle_log_dialog(self, event):
         if self.log_dialog.isVisible():
@@ -504,6 +606,9 @@ class MainWindow(QtWidgets.QMainWindow):
             event.accept()
 
     def closeEvent(self, event):
+        # Stop recording if active
+        if self.is_recording:
+            self.toggle_recording()
         self.sensor_thread.stop()
         event.accept()
 
